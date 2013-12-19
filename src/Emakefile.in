@@ -47,7 +47,7 @@
 		'@srcdir@/server/exmpp_server_tls'@COMPAT_MODULES_START@
 		@COMPAT_MODULES@'@srcdir@/compat/ejabberd_socket',
 		@COMPAT_MODULES@'@srcdir@/compat/stringprep',
-		@COMPAT_MODULES@'@srcdir@/compat/tls',
+		@COMPAT_MODULES@'@srcdir@/compat/compat_tls',
 		@COMPAT_MODULES@'@srcdir@/compat/xml',
 		@COMPAT_MODULES@'@srcdir@/compat/xml_stream'
 	],

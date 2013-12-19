@@ -21,5 +21,5 @@
                         exmpp_server_session,exmpp_server_tls,exmpp_session,
                         exmpp_socket,exmpp_stanza,exmpp_stream,
                         exmpp_stringprep,exmpp_sup,exmpp_tls,exmpp_utils,
-                        exmpp_xml,exmpp_xmlstream,stringprep,tls,xml,
+                        exmpp_xml,exmpp_xmlstream,stringprep,compat_tls,xml,
                         xml_stream]}]}.
