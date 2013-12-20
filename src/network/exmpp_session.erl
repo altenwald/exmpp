@@ -865,7 +865,11 @@ wait_for_sasl_response(#xmlstreamelement{element=#xmlel{name='challenge'} = Elem
          ok ->
             Module:send(ConnRef, exmpp_client_sasl:response("")),
             {next_state, wait_for_sasl_response, State }
-    end.
+    end;
+
+wait_for_sasl_response(#xmlstreamelement{element=#xmlel{name='failure'}}, _State) ->
+    throw('temporary-auth-failure').
+    %%{next_state, stream_error, State#state{stream_error = 'temporary-auth-failure'}}.
 
 stream_error(_Signal, _From, State) ->
     {reply, {stream_error, State#state.stream_error}, stream_error, State}.
