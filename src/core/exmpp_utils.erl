@@ -46,8 +46,8 @@
 %% {@link erlang:integer_to_list/1} is used. For a binary, {@link
 %% erlang:binary_to_list/1} is used. A string is returned as is.
 
--spec(any_to_list/1 ::
-      (binary() | string() | integer() | atom()) -> string()).
+-spec any_to_list
+      (binary() | string() | integer() | atom()) -> string().
 
 any_to_list(Atom) when is_atom(Atom) ->
     atom_to_list(Atom);
@@ -68,8 +68,8 @@ any_to_list(Binary) when is_binary(Binary) ->
 %% {@link erlang:integer_to_list/1} is used. For a string, {@link
 %% erlang:list_to_binary/1} is used. A binary is returned as is.
 
--spec(any_to_binary/1 ::
-      (binary() | string() | integer() | atom()) -> binary()).
+-spec any_to_binary
+      (binary() | string() | integer() | atom()) -> binary().
 
 any_to_binary(Atom) when is_atom(Atom) ->
     any_to_binary(atom_to_list(Atom));
@@ -88,10 +88,10 @@ any_to_binary(Binary) when is_binary(Binary) ->
 %%
 %% @see strip/3.
 
--spec(strip/1 ::
+-spec strip
       (binary()) -> binary();
       (string()) -> string()
-		       ).
+		       .
 
 strip(Stream) ->
     strip(Stream, both).
@@ -109,10 +109,10 @@ strip(Stream) ->
 %%
 %% @see strip/3.
 
--spec(strip/2 ::
+-spec strip
       (binary(), left | right | both) -> binary();
       (string(), left | right | both) -> string()
-					    ).
+					    .
 
 strip(Stream, left) ->
     strip_left(Stream);
@@ -160,7 +160,7 @@ strip_right([]) ->
 %%
 %% @see random_id/1.
 
--spec(random_id/0 :: () -> string()).
+-spec random_id() -> string().
 
 random_id() ->
     random_id("exmpp").
@@ -175,7 +175,7 @@ random_id() ->
 %%
 %% The ID is not guaranted to be unique.
 
--spec(random_id/1 :: (string() | undefined) -> string()).
+-spec random_id(string() | undefined) -> string().
 
 random_id(undefined) ->
     integer_to_list(random:uniform(65536 * 65536));
