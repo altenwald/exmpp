@@ -51,7 +51,7 @@ BEAM_FILES = exmpp.app							\
 if BUILD_COMPAT
 BEAM_FILES += ejabberd_socket.beam					\
 	      stringprep.beam						\
-	      tls.beam							\
+	      compat_tls.beam						\
 	      xml.beam							\
 	      xml_stream.beam
 endif
