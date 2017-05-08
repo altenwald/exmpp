@@ -43,7 +43,10 @@
         exmpp_server_tls,
         exmpp_sasl_digest,
         exmpp_session,
-        exmpp_socket@COMPAT_MODULES_START@
+        exmpp_socket,
+        exmpp_known_attrs,
+        exmpp_known_elems,
+        exmpp_known_nss@COMPAT_MODULES_START@
         @COMPAT_MODULES@ejabberd_socket,
         @COMPAT_MODULES@stringprep,
         @COMPAT_MODULES@tls,

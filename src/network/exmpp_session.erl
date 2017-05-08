@@ -65,7 +65,7 @@
 	 connect_TCP/2, connect_TCP/3, connect_TCP/4,
 	 connect_BOSH/4,
 	 register_account/2, register_account/3,
-	 login/1, login/2,
+	 login/1, login/2, login/3,
 	 send_packet/2,
 	 set_controlling_process/2,
      get_connection_property/2]).
@@ -253,7 +253,7 @@ connect_TCP(Session, Server, Port) ->
 %% Initiate standard TCP XMPP server connection
 %% Returns {ok,StreamId::String} | {ok, StreamId::string(), Features :: xmlel{}}
 %%  Option() = {local_ip, IP} | {local_port, fun() -> integer()}   bind sockets to this local ip / port.
-%%      | {domain, Domain} | {starttls, Value} | {compression, Value}  | {whitespace_ping, Timeout}
+%%      | {domain, Domain} | {starttls, Value} | {compression, Value}  | {whitespace_ping, Timeout} | {timeout, Timeout}
 %% Value() = enabled | disabled
 %% If the domain is not passed we expect to find it in the authentication
 %% info. It should thus be set before.
@@ -263,9 +263,15 @@ connect_TCP(Session, Server, Port, Options)
        is_list(Server),
        is_integer(Port),
        is_list(Options) ->
+    {Timeout, Opts} = case lists:keytake(timeout, 1, Options) of
+	    {value, {timeout, T}, Options2} ->
+		    {T, Options2};
+	    false ->
+		    {?TIMEOUT, Options}
+    end,
     case gen_fsm:sync_send_event(Session,
-				 {connect_socket, Server, Port, Options},
-				 ?TIMEOUT) of
+				 {connect_socket, Server, Port, Opts},
+				 Timeout) of
 	{ok, StreamId} -> {ok, StreamId};
     {ok, StreamId, Features} -> {ok, StreamId, Features};
 	Error when is_tuple(Error) -> erlang:throw(Error)
@@ -277,13 +283,20 @@ connect_TCP(Session, Server, Port, Options)
 %% Returns {ok,StreamId::String} | {ok, StreamId::string(), Features :: xmlel{}}
 %%  Options = [option()]
 %%  Option() = {local_ip, IP} | {local_port, fun() -> integer()}  bind sockets to this local ip / port.
+%%             {timeout, Timeout}
 
 connect_BOSH(Session, URL, Server, Options)
   when is_pid(Session),
        is_list(Server),
        is_list(Options) ->
-    case gen_fsm:sync_send_event(Session, {connect_bosh, URL, Server, Options},
-                                 ?TIMEOUT) of
+    {Timeout, Opts} = case lists:keytake(timeout, 1, Options) of
+	    {value, {timeout, T}, Options2} ->
+		    {T, Options2};
+	    false ->
+		    {?TIMEOUT, Options}
+    end,
+    case gen_fsm:sync_send_event(Session, {connect_bosh, URL, Server, Opts},
+                                 Timeout) of
 	{ok, StreamId} -> {ok, StreamId};
     {ok, StreamId, Features} -> {ok, StreamId, Features};
 	Error when is_tuple(Error) -> erlang:throw(Error)
@@ -309,7 +322,7 @@ connect_SSL(Session, Server, Port) ->
 %% Returns {ok,StreamId::String} | {ok, StreamId::string(), Features :: xmlel{}}
 %%  Options = [option()]
 %%  Option() = {local_ip, IP} | {local_port, fun() -> integer()}  bind sockets to this local ip / port.
-%%             | {whitespace_ping, TimeoutInSecs}
+%%             | {whitespace_ping, TimeoutInSecs} | {timeout, Timeout}
 connect_SSL(Session, Server, Port, Options) ->
     connect_TCP(Session, Server, Port, [{socket_type, ssl} | Options]).
 
@@ -335,22 +348,31 @@ register_account(Session, Username, Password) ->
 
 %% Login session user
 %% Returns {ok, JID}
-login(Session) when is_pid(Session) ->
-    case gen_fsm:sync_send_event(Session, {login}) of
+
+login(Session) ->
+	login(Session, ?TIMEOUT).
+
+%%  Options = [option()]
+%%  Option() = {timeout, Timeout}
+login(Session, Timeout) when is_pid(Session) , is_integer(Timeout) ->
+    case gen_fsm:sync_send_event(Session, {login}, Timeout) of
 	{ok, JID} -> {ok, JID};
 	Error when is_tuple(Error) -> erlang:throw(Error)
-    end.
+    end;
+
+login(Session, M) when is_pid(Session) ->
+	login(Session, M, ?TIMEOUT).
 
 %% Login using chosen SASL Mechanism
-login(Session, Mechanism) when is_pid(Session), is_list(Mechanism) ->
-    case gen_fsm:sync_send_event(Session, {login, sasl, Mechanism}) of
+login(Session, Mechanism, Timeout) when is_pid(Session), is_list(Mechanism) ->
+    case gen_fsm:sync_send_event(Session, {login, sasl, Mechanism}, Timeout) of
 	{ok, JID} -> {ok, JID};
 	Error when is_tuple(Error) -> erlang:throw(Error)
     end;
 
 %% Login using chosen legacy method
-login(Session, Method) when is_pid(Session), is_atom(Method) ->
-    case gen_fsm:sync_send_event(Session, {login, basic, Method}) of
+login(Session, Method, Timeout) when is_pid(Session), is_atom(Method) ->
+    case gen_fsm:sync_send_event(Session, {login, basic, Method}, Timeout) of
 	{ok, JID} -> {ok, JID};
 	Error when is_tuple(Error) -> erlang:throw(Error)
     end.
@@ -366,8 +388,8 @@ send_packet(Session, Packet) when is_pid(Session) ->
 %%
 %%      See documentation on exmpp_socket and exmpp_bosh to see the supported properties.
 %%      Returns {error, undefined} if the property is not defined for that kind of connection.
--spec(get_connection_property/2 :: 
-        (pid(), atom()) -> {ok, any()} | {error, any()}).
+-spec get_connection_property
+        (pid(), atom()) -> {ok, any()} | {error, any()}.
 get_connection_property(Session, Prop) ->
     gen_fsm:sync_send_all_state_event(Session, {get_connection_property, Prop}).
 
@@ -636,13 +658,14 @@ wait_for_stream_features(X, State) ->
     {next_state, wait_for_stream_features, State}.
    
 
-wait_for_compression_result(#xmlstreamelement{element=#xmlel{name='compressed'}}, State) ->
+wait_for_compression_result(#xmlstreamelement{element=#xmlel{name='compressed'}}, State=#state{domain=Domain}) ->
     #state{connection = Module,
-           receiver_ref = ReceiverRef,
-           auth_info = Auth} = State,
+           receiver_ref = ReceiverRef
+           %%auth_info = Auth
+           } = State,
     case Module:compress(ReceiverRef) of
         {ok, NewSocket} ->
-            Domain = get_domain(Auth),
+            %%Domain = get_domain(Auth),
             Module:reset_parser(ReceiverRef),
             ok = Module:send(NewSocket, exmpp_stream:opening(Domain, ?NS_JABBER_CLIENT, {1,0})),
             {next_state, wait_for_stream, State#state{compressed=true, connection_ref = NewSocket}};
@@ -650,13 +673,14 @@ wait_for_compression_result(#xmlstreamelement{element=#xmlel{name='compressed'}}
             {stop, 'could-not-compress-stream', State}
     end.
 
-wait_for_starttls_result(#xmlstreamelement{element=#xmlel{name='proceed'}}, State) ->
+wait_for_starttls_result(#xmlstreamelement{element=#xmlel{name='proceed'}}, State=#state{domain=Domain}) ->
     #state{connection = Module,
-           receiver_ref = ReceiverRef,
-           auth_info = Auth} = State,
+           receiver_ref = ReceiverRef
+           %%auth_info = Auth
+           } = State,
     case Module:starttls(ReceiverRef, client) of
         {ok, NewSocket} ->
-            Domain = get_domain(Auth),
+            %%Domain = get_domain(Auth),
             Module:reset_parser(ReceiverRef),
             ok = Module:send(NewSocket, exmpp_stream:opening(Domain, ?NS_JABBER_CLIENT, {1,0})),
             {next_state, wait_for_stream, State#state{connection_ref = NewSocket}};
@@ -666,14 +690,20 @@ wait_for_starttls_result(#xmlstreamelement{element=#xmlel{name='proceed'}}, Stat
 
 
 wait_for_bind_response(#xmlstreamelement{element = #xmlel{name ='iq'} = IQ}, State) ->
-    #state{connection = Module, connection_ref = ConnRef} = State,
+    #state{connection = Module, connection_ref = ConnRef, auth_info = {_JID, Password}}
+    = State,
     case exmpp_iq:get_type(IQ) of
         result ->
             JID = exmpp_client_binding:bounded_jid(IQ),
             %%TODO what does this exactly do?
             NewAuthMethod = {basic, sasl_anonymous, JID, undefined}, %%TODO: is this neccesary?
+            NewAuthInfo = {JID, Password},
             Module:send(ConnRef, exmpp_client_session:establish()),
-            {next_state, wait_for_session_response, State#state{auth_method=NewAuthMethod}};
+            NewState = State#state{
+                auth_method = NewAuthMethod,
+                auth_info   = NewAuthInfo
+            },
+            {next_state, wait_for_session_response, NewState};
         _ ->
             {stop, {bind, IQ}, State}
     end.
