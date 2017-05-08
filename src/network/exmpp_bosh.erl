@@ -418,7 +418,7 @@ read_length(Hdrs, Socket, Length) ->
 %%   Path = string()                     
 %%   Ssl = bool()                        
 %% @doc                                  
--spec parse_url(string()) -> {string(), integer(), string(), bool()}.
+-spec parse_url(string()) -> {string(), integer(), string(), boolean()}.
 parse_url(URL) ->                                                       
     % XXX This should be possible to do with the re module?             
     {Scheme, HostPortPath} = split_scheme(URL),                         

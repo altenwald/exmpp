@@ -311,8 +311,7 @@ make(Orig, Node, Domain, Resource) ->
 
 bare(#jid{raw = Orig_Jid} = Jid) ->
     New_Orig_Jid = case binary_split(Orig_Jid, $/) of
-		       [Bare_Jid | _] -> Bare_Jid;
-		       [Bare_Jid]    -> Bare_Jid
+		       [Bare_Jid | _] -> Bare_Jid
 		   end,
     Jid#jid{
       raw = New_Orig_Jid,
@@ -628,7 +627,7 @@ prep_bare_to_binary(#jid{node = Node, domain = Domain}) ->
 %% JID comparison.
 %% --------------------------------------------------------------------
 
-%% @spec (Jid1, Jid2) -> bool()
+%% @spec (Jid1, Jid2) -> boolean()
 %%     Jid1 = jid()
 %%     Jid2 = jid()
 %% @doc Compare full JIDs.
@@ -643,7 +642,7 @@ full_compare(#jid{node = LNode, domain = LDomain,
 full_compare(_Jid1, _Jid2) ->
     false.
 
-%% @spec (Jid1, Jid2) -> bool()
+%% @spec (Jid1, Jid2) -> boolean()
 %%     Jid1 = jid()
 %%     Jid2 = jid()
 %% @doc Compare bare JIDs.
@@ -656,7 +655,7 @@ bare_compare(#jid{node = LNode, domain = LDomain},
 bare_compare(_Jid1, _Jid2) ->
     false.
 
-%% @spec (Jid1, Jid2) -> bool()
+%% @spec (Jid1, Jid2) -> boolean()
 %%     Jid1 = jid()
 %%     Jid2 = jid()
 %% @doc Compare full JIDs. This function is identical to full_compare/2.
@@ -666,7 +665,7 @@ bare_compare(_Jid1, _Jid2) ->
 compare(Jid1, Jid2) ->
     full_compare(Jid1, Jid2).
 
-%% @spec (Jid1, Jid2) -> bool()
+%% @spec (Jid1, Jid2) -> boolean()
 %%     Jid1 = jid()
 %%     Jid2 = jid()
 %% @doc Compare JID's domain.
@@ -683,7 +682,7 @@ compare_domains(_Jid1, _Jid2) ->
 %% JID checks.
 %% --------------------------------------------------------------------
 
-%% @spec (Jid) -> bool()
+%% @spec (Jid) -> boolean()
 %%     Jid = jid()
 %% @doc Tell if the argument is a JID.
 %%
